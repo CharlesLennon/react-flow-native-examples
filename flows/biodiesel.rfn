@@ -1,0 +1,273 @@
+{
+  "format": "rfn/1.0",
+  "id": "biodiesel-3-tier",
+  "name": "Biodiesel 3-Tier Processor",
+  "version": "1.1.0",
+  "description": "Gravity-fed 3-tier biodiesel system with dual-input methoxide dosing pump (IN 1: Heated Oil, IN 2: Methoxide) and embedded process logic.",
+  "parameters": [
+    {
+      "key": "batchLiters",
+      "label": "Batch Oil",
+      "type": "number",
+      "default": 150,
+      "min": 20,
+      "max": 200,
+      "step": 10,
+      "unit": "L"
+    },
+    {
+      "key": "titrationGpl",
+      "label": "Titration (NaOH)",
+      "type": "number",
+      "default": 4.5,
+      "min": 2.0,
+      "max": 9.0,
+      "step": 0.5,
+      "unit": "g/L"
+    },
+    {
+      "key": "targetTempC",
+      "label": "Dry/Heat Temp",
+      "type": "number",
+      "default": 55,
+      "min": 20,
+      "max": 70,
+      "step": 1,
+      "unit": "°C"
+    },
+    {
+      "key": "dosingEnabled",
+      "label": "Dosing Pump Power",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "logic": {
+    "compute": {
+      "methanolLiters": "round(batchLiters * 0.20, 1)",
+      "naohGrams": "round(batchLiters * (3.5 + titrationGpl), 0)",
+      "methoxideLiters": "round(methanolLiters + naohGrams / 2130, 1)",
+      "heatReady": "targetTempC >= 52 && targetTempC <= 60",
+      "overTemp": "targetTempC > 60",
+      "dosingActive": "dosingEnabled && heatReady && batchLiters > 0",
+      "totalMixLiters": "round(batchLiters + methoxideLiters, 1)",
+      "pumpFlowLpm": "dosingActive ? round(totalMixLiters / 15, 1) : 0",
+      "glycerolLiters": "dosingActive ? round(batchLiters * 0.18, 1) : 0",
+      "biodieselLiters": "dosingActive ? round(batchLiters * 0.98, 1) : 0"
+    },
+    "nodeBindings": {
+      "raw-oil": {
+        "badge": "{{batchLiters}} L WVO",
+        "status": "active"
+      },
+      "dry-heat": {
+        "badge": "overTemp ? 'OVERHEAT ' + targetTempC + '°C (>60°C)' : heatReady ? targetTempC + '°C READY' : 'LOW TEMP ' + targetTempC + '°C (<52°C)'",
+        "status": "overTemp ? 'error' : heatReady ? 'active' : 'warn'"
+      },
+      "methoxide-tank": {
+        "badge": "{{methanolLiters}}L MeOH + {{naohGrams}}g NaOH",
+        "status": "dosingEnabled ? 'active' : 'idle'"
+      },
+      "dosing-pump": {
+        "badge": "dosingActive ? pumpFlowLpm + ' L/min • 2-IN' : 'PAUSED (' + (!dosingEnabled ? 'OFF' : overTemp ? 'OVERHEAT' : 'COLD OIL') + ')'",
+        "status": "dosingActive ? 'active' : 'warn'"
+      },
+      "processor": {
+        "badge": "dosingActive ? totalMixLiters + ' L Mixing' : 'Waiting for Dosing'",
+        "status": "dosingActive ? 'active' : 'idle'"
+      },
+      "waste": {
+        "badge": "{{glycerolLiters}} L Glycerine",
+        "status": "dosingActive ? 'active' : 'idle'"
+      },
+      "wash-dry": {
+        "badge": "dosingActive ? biodieselLiters + ' L Washing' : 'Standby'",
+        "status": "dosingActive ? 'active' : 'idle'"
+      },
+      "filters": {
+        "badge": "dosingActive ? 'Polishing 10µ→5µ' : 'Standby'",
+        "status": "dosingActive ? 'active' : 'idle'"
+      },
+      "storage": {
+        "badge": "{{biodieselLiters}} L B100",
+        "status": "dosingActive ? 'active' : 'idle'"
+      }
+    },
+    "edgeBindings": {
+      "e-raw-dry": {
+        "active": "batchLiters > 0",
+        "label": "{{batchLiters}} L"
+      },
+      "e-dry-pump": {
+        "active": "heatReady && batchLiters > 0",
+        "label": "IN 1: {{batchLiters}}L Oil"
+      },
+      "e-meth-pump": {
+        "active": "dosingActive",
+        "label": "IN 2: {{methoxideLiters}}L MeONa"
+      },
+      "e-pump-proc": {
+        "active": "dosingActive",
+        "label": "{{pumpFlowLpm}} L/min"
+      },
+      "e-proc-waste": {
+        "active": "dosingActive",
+        "label": "{{glycerolLiters}}L"
+      },
+      "e-proc-wash": {
+        "active": "dosingActive",
+        "label": "{{biodieselLiters}}L"
+      },
+      "e-wash-filt": {
+        "active": "dosingActive"
+      },
+      "e-filt-stor": {
+        "active": "dosingActive",
+        "label": "B100"
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "raw-oil",
+      "type": "custom",
+      "position": { "x": 130, "y": 40 },
+      "data": { "label": "DRUM 1: Raw Oil (Settling)", "color": "#94a3b8", "kind": "drum" }
+    },
+    {
+      "id": "methoxide-tank",
+      "type": "custom",
+      "position": { "x": 470, "y": 40 },
+      "data": { "label": "DRUM 7: Methoxide Mix", "color": "#8b5cf6", "kind": "drum", "variant": "mix" }
+    },
+    {
+      "id": "dry-heat",
+      "type": "custom",
+      "position": { "x": 130, "y": 270 },
+      "data": { "label": "DRUM 2: Dry & Heat", "color": "#3b82f6", "kind": "drum", "variant": "heat" }
+    },
+    {
+      "id": "dosing-pump",
+      "type": "custom",
+      "position": { "x": 470, "y": 275 },
+      "data": {
+        "label": "Meth-Oxide Dosing Pump",
+        "color": "#f8fafc",
+        "kind": "pump",
+        "inputs": ["IN 1: Heated Oil", "IN 2: Methoxide"]
+      }
+    },
+    {
+      "id": "processor",
+      "type": "custom",
+      "position": { "x": 810, "y": 270 },
+      "data": { "label": "DRUM 3: Processor", "color": "#3b82f6", "kind": "drum", "variant": "mix" }
+    },
+    {
+      "id": "waste",
+      "type": "custom",
+      "position": { "x": 130, "y": 500 },
+      "data": { "label": "DRUM 6: Waste Glycerine", "color": "#f97316", "kind": "drum" }
+    },
+    {
+      "id": "wash-dry",
+      "type": "custom",
+      "position": { "x": 470, "y": 500 },
+      "data": { "label": "DRUM 4: Wash & Dry", "color": "#3b82f6", "kind": "drum" }
+    },
+    {
+      "id": "filters",
+      "type": "custom",
+      "position": { "x": 730, "y": 510 },
+      "data": { "label": "Filters (10 & 5 Micron)", "color": "#f8fafc", "kind": "filter" }
+    },
+    {
+      "id": "storage",
+      "type": "custom",
+      "position": { "x": 980, "y": 500 },
+      "data": { "label": "DRUM 5: Finished Fuel", "color": "#3b82f6", "kind": "drum", "variant": "fuel" }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-raw-dry",
+      "source": "raw-oil",
+      "target": "dry-heat",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "animated": true,
+      "type": "smoothstep",
+      "style": { "stroke": "#f59e0b", "strokeWidth": 3 }
+    },
+    {
+      "id": "e-dry-pump",
+      "source": "dry-heat",
+      "target": "dosing-pump",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "animated": true,
+      "type": "smoothstep",
+      "style": { "stroke": "#3b82f6", "strokeWidth": 3 }
+    },
+    {
+      "id": "e-meth-pump",
+      "source": "methoxide-tank",
+      "target": "dosing-pump",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "animated": true,
+      "type": "smoothstep",
+      "style": { "stroke": "#8b5cf6", "strokeWidth": 3 }
+    },
+    {
+      "id": "e-pump-proc",
+      "source": "dosing-pump",
+      "target": "processor",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "animated": true,
+      "type": "smoothstep",
+      "style": { "stroke": "#7c3aed", "strokeWidth": 3 }
+    },
+    {
+      "id": "e-proc-waste",
+      "source": "processor",
+      "target": "waste",
+      "sourceHandle": "bottom",
+      "targetHandle": "right",
+      "animated": true,
+      "type": "smoothstep",
+      "style": { "stroke": "#f97316", "strokeWidth": 3 }
+    },
+    {
+      "id": "e-proc-wash",
+      "source": "processor",
+      "target": "wash-dry",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "animated": true,
+      "type": "smoothstep",
+      "style": { "stroke": "#3b82f6", "strokeWidth": 3 }
+    },
+    {
+      "id": "e-wash-filt",
+      "source": "wash-dry",
+      "target": "filters",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "animated": true,
+      "type": "smoothstep",
+      "style": { "stroke": "#3b82f6", "strokeWidth": 3 }
+    },
+    {
+      "id": "e-filt-stor",
+      "source": "filters",
+      "target": "storage",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "animated": true,
+      "type": "smoothstep",
+      "style": { "stroke": "#10b981", "strokeWidth": 3 }
+    }
+  ]
+}

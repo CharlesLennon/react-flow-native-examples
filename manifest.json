@@ -1,0 +1,14 @@
+{
+  "format": "rfn-manifest/1.0",
+  "updatedAt": "2026-11-17T19:10:00Z",
+  "examples": [
+    {
+      "id": "biodiesel-3-tier",
+      "name": "Biodiesel 3-Tier Processor",
+      "version": "1.1.0",
+      "category": "Process & Chemical",
+      "description": "Gravity-fed 3-tier biodiesel system with dual-input methoxide dosing pump and embedded stoichiometry & temperature interlock logic.",
+      "path": "flows/biodiesel.rfn"
+    }
+  ]
+}
