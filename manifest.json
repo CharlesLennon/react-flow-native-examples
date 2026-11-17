@@ -1,12 +1,12 @@
 {
   "format": "rfn-manifest/1.0",
-  "version": "1.3.0",
-  "updatedAt": "2026-11-17T20:10:00Z",
+  "version": "1.4.0",
+  "updatedAt": "2026-11-17T20:20:00Z",
   "examples": [
     {
       "id": "biodiesel-3-tier",
       "name": "Biodiesel 3-Tier Processor",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "category": "Process & Chemical",
       "description": "Gravity-fed 3-tier biodiesel system with dual-input methoxide dosing pump and embedded stoichiometry & temperature interlock logic.",
       "path": "flows/biodiesel.rfn"
@@ -14,7 +14,7 @@
     {
       "id": "solar-mppt-bus",
       "name": "Solar MPPT & Battery Bus",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "category": "Energy & Power",
       "description": "Off-grid solar array feeding MPPT charge controller, 48V LiFePO4 bank, and AC inverter with live power balance logic.",
       "path": "flows/solar-battery.rfn"

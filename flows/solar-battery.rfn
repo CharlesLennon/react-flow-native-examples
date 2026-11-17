@@ -2,8 +2,37 @@
   "format": "rfn/1.0",
   "id": "solar-mppt-bus",
   "name": "Solar MPPT & Battery Bus",
-  "version": "1.0.0",
-  "description": "Off-grid solar array feeding MPPT charge controller, 48V LiFePO4 bank, and AC inverter with live power balance logic.",
+  "version": "1.1.0",
+  "description": "Off-grid solar array feeding MPPT charge controller, 48V LiFePO4 bank, and AC inverter with a custom daylight simulation console.",
+  "console": {
+    "title": "Solar Microgrid Console",
+    "controls": [
+      {
+        "type": "transport",
+        "param": "irradiancePct",
+        "step": 5,
+        "intervalMs": 350,
+        "loop": true,
+        "autoPlay": false,
+        "timeScales": [0.5, 1, 2, 4],
+        "defaultTimeScale": 1,
+        "playLabel": "Sweep Sun",
+        "pauseLabel": "Pause Sun"
+      },
+      { "type": "stageBanner", "label": "Mode", "computeKey": "modeLabel" },
+      { "type": "slider", "param": "irradiancePct" },
+      { "type": "slider", "param": "loadWatts" },
+      { "type": "toggle", "param": "inverterOn" },
+      {
+        "type": "metrics",
+        "items": [
+          { "key": "pvWatts", "label": "Solar Input", "unit": "W" },
+          { "key": "activeLoad", "label": "AC Load", "unit": "W" },
+          { "key": "netWatts", "label": "Battery Net", "unit": "W" }
+        ]
+      }
+    ]
+  },
   "parameters": [
     { "key": "irradiancePct", "label": "Sun Irradiance", "type": "number", "default": 80, "min": 0, "max": 100, "step": 5, "unit": "%" },
     { "key": "loadWatts", "label": "AC Load", "type": "number", "default": 1200, "min": 0, "max": 3500, "step": 100, "unit": "W" },
@@ -14,25 +43,19 @@
       "pvWatts": "round(2400 * (irradiancePct / 100), 0)",
       "activeLoad": "inverterOn ? loadWatts : 0",
       "netWatts": "round(pvWatts - activeLoad, 0)",
-      "charging": "netWatts >= 0"
+      "charging": "netWatts >= 0",
+      "modeLabel": "pvWatts == 0 ? 'Night Discharge' : charging ? 'Solar Charging' : 'Hybrid Assist'"
     },
     "nodeBindings": {
-      "pv-array": {
-        "badge": "{{pvWatts}} W Solar",
-        "status": "pvWatts > 0 ? 'active' : 'idle'"
-      },
-      "mppt": {
-        "badge": "pvWatts > 0 ? 'MPPT Tracking' : 'Night Standby'",
-        "status": "pvWatts > 0 ? 'active' : 'idle'"
-      },
+      "pv-array": { "badge": "{{pvWatts}} W Solar", "status": "pvWatts > 0 ? 'active' : 'idle'" },
+      "mppt": { "badge": "pvWatts > 0 ? 'MPPT Tracking' : 'Night Standby'", "status": "pvWatts > 0 ? 'active' : 'idle'" },
       "battery": {
         "badge": "charging ? '+' + netWatts + ' W Charging' : netWatts + ' W Discharging'",
-        "status": "charging ? 'active' : 'warn'"
+        "status": "charging ? 'active' : 'warn'",
+        "level": "clamp(50 + netWatts / 40, 10, 100)",
+        "liquidColor": "charging ? '#10b981' : '#f59e0b'"
       },
-      "inverter": {
-        "badge": "inverterOn ? activeLoad + ' W AC Out' : 'OFF'",
-        "status": "inverterOn ? 'active' : 'idle'"
-      }
+      "inverter": { "badge": "inverterOn ? activeLoad + ' W AC Out' : 'OFF'", "status": "inverterOn ? 'active' : 'idle'" }
     },
     "edgeBindings": {
       "e-pv-mppt": { "active": "pvWatts > 0", "label": "{{pvWatts}} W" },
@@ -41,10 +64,11 @@
     }
   },
   "nodes": [
-    { "id": "pv-array", "type": "custom", "position": { "x": 100, "y": 180 }, "data": { "label": "PV Array (2.4 kWp)", "color": "#3b82f6", "kind": "drum", "variant": "heat" } },
-    { "id": "mppt", "type": "custom", "position": { "x": 360, "y": 180 }, "data": { "label": "MPPT Controller", "color": "#f8fafc", "kind": "pump", "inputs": ["PV DC IN"] } },
-    { "id": "battery", "type": "custom", "position": { "x": 630, "y": 180 }, "data": { "label": "48V LiFePO4 Bank", "color": "#8b5cf6", "kind": "drum", "variant": "fuel" } },
-    { "id": "inverter", "type": "custom", "position": { "x": 900, "y": 180 }, "data": { "label": "AC Inverter", "color": "#94a3b8", "kind": "filter" } }
+    { "id": "note-mppt", "type": "custom", "position": { "x": 340, "y": 10 }, "data": { "kind": "note", "label": "MPPT & Battery Balance", "noteText": "MPPT converts high-voltage PV DC to 48V battery bus. Positive net watts charge the LiFePO4 bank; negative net watts draw from storage." } },
+    { "id": "pv-array", "type": "custom", "position": { "x": 100, "y": 210 }, "data": { "label": "PV Array (2.4 kWp)", "color": "#3b82f6", "kind": "drum", "variant": "heat" } },
+    { "id": "mppt", "type": "custom", "position": { "x": 360, "y": 210 }, "data": { "label": "MPPT Controller", "color": "#f8fafc", "kind": "pump", "inputs": ["PV DC IN"] } },
+    { "id": "battery", "type": "custom", "position": { "x": 630, "y": 210 }, "data": { "label": "48V LiFePO4 Bank", "color": "#8b5cf6", "kind": "drum", "variant": "fuel" } },
+    { "id": "inverter", "type": "custom", "position": { "x": 900, "y": 210 }, "data": { "label": "AC Inverter", "color": "#94a3b8", "kind": "filter" } }
   ],
   "edges": [
     { "id": "e-pv-mppt", "source": "pv-array", "target": "mppt", "sourceHandle": "right", "targetHandle": "left", "animated": true, "type": "smoothstep", "style": { "stroke": "#f59e0b", "strokeWidth": 3 } },

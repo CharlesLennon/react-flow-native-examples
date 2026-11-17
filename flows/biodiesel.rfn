@@ -2,61 +2,48 @@
   "format": "rfn/1.0",
   "id": "biodiesel-3-tier",
   "name": "Biodiesel 3-Tier Processor",
-  "version": "1.2.0",
-  "description": "Gravity-fed 3-tier biodiesel system with dual-input methoxide dosing pump, stage-by-stage batch simulation, and animated barrel fluid levels.",
-  "simulation": {
-    "param": "batchProgress",
-    "step": 2,
-    "intervalMs": 300,
-    "loop": true
+  "version": "1.3.0",
+  "description": "Gravity-fed 3-tier biodiesel system with dual-input methoxide dosing pump, glycerine separation note, animated barrel fluid levels, and custom batch console.",
+  "console": {
+    "title": "Biodiesel Batch Console",
+    "controls": [
+      {
+        "type": "transport",
+        "param": "batchProgress",
+        "step": 2,
+        "intervalMs": 300,
+        "loop": true,
+        "autoPlay": true,
+        "timeScales": [0.5, 1, 2, 5],
+        "defaultTimeScale": 1,
+        "playLabel": "Play Batch",
+        "pauseLabel": "Pause Batch"
+      },
+      { "type": "stageBanner", "label": "Stage", "computeKey": "stageName" },
+      { "type": "slider", "param": "batchProgress" },
+      { "type": "slider", "param": "batchLiters" },
+      { "type": "slider", "param": "titrationGpl" },
+      { "type": "slider", "param": "targetTempC" },
+      { "type": "toggle", "param": "dosingEnabled" },
+      {
+        "type": "metrics",
+        "items": [
+          { "key": "methanolLiters", "label": "MeOH (20%)", "unit": "L" },
+          { "key": "naohGrams", "label": "NaOH Catalyst", "unit": "g" },
+          { "key": "methoxideLiters", "label": "Methoxide Vol", "unit": "L" },
+          { "key": "pumpFlowLpm", "label": "Dosing Flow", "unit": "L/min" },
+          { "key": "glycerolLiters", "label": "Waste Glycerine", "unit": "L" },
+          { "key": "biodieselLiters", "label": "B100 Yield", "unit": "L" }
+        ]
+      }
+    ]
   },
   "parameters": [
-    {
-      "key": "batchProgress",
-      "label": "Batch Progress",
-      "type": "number",
-      "default": 0,
-      "min": 0,
-      "max": 100,
-      "step": 2,
-      "unit": "%"
-    },
-    {
-      "key": "batchLiters",
-      "label": "Batch Oil",
-      "type": "number",
-      "default": 150,
-      "min": 20,
-      "max": 200,
-      "step": 10,
-      "unit": "L"
-    },
-    {
-      "key": "titrationGpl",
-      "label": "Titration (NaOH)",
-      "type": "number",
-      "default": 4.5,
-      "min": 2.0,
-      "max": 9.0,
-      "step": 0.5,
-      "unit": "g/L"
-    },
-    {
-      "key": "targetTempC",
-      "label": "Dry/Heat Temp",
-      "type": "number",
-      "default": 55,
-      "min": 20,
-      "max": 70,
-      "step": 1,
-      "unit": "°C"
-    },
-    {
-      "key": "dosingEnabled",
-      "label": "Dosing Pump Power",
-      "type": "boolean",
-      "default": true
-    }
+    { "key": "batchProgress", "label": "Batch Progress", "type": "number", "default": 0, "min": 0, "max": 100, "step": 2, "unit": "%" },
+    { "key": "batchLiters", "label": "Batch Oil", "type": "number", "default": 150, "min": 20, "max": 200, "step": 10, "unit": "L" },
+    { "key": "titrationGpl", "label": "Titration (NaOH)", "type": "number", "default": 4.5, "min": 2.0, "max": 9.0, "step": 0.5, "unit": "g/L" },
+    { "key": "targetTempC", "label": "Dry/Heat Temp", "type": "number", "default": 55, "min": 20, "max": 70, "step": 1, "unit": "°C" },
+    { "key": "dosingEnabled", "label": "Dosing Pump Power", "type": "boolean", "default": true }
   ],
   "logic": {
     "compute": {
@@ -118,6 +105,10 @@
         "level": "lvlWaste",
         "liquidColor": "'#78350f'"
       },
+      "note-glycerine-sep": {
+        "badge": "stage3 && dosingActive ? 'ACTIVE: Draining Bottom Layer' : 'Stage 3 Gravity Separation'",
+        "status": "stage3 && dosingActive ? 'active' : 'idle'"
+      },
       "wash-dry": {
         "badge": "stage3 ? lvlWash + '% • Filling' : stage4 ? lvlWash + '% • Washing' : lvlWash + '%'",
         "status": "(stage3 || stage4) && dosingActive ? 'active' : 'idle'",
@@ -136,38 +127,14 @@
       }
     },
     "edgeBindings": {
-      "e-raw-dry": {
-        "active": "stage1 && batchLiters > 0",
-        "label": "{{batchLiters}}L WVO"
-      },
-      "e-dry-pump": {
-        "active": "stage2 && dosingActive",
-        "label": "IN 1: Oil"
-      },
-      "e-meth-pump": {
-        "active": "stage2 && dosingActive",
-        "label": "IN 2: MeONa"
-      },
-      "e-pump-proc": {
-        "active": "stage2 && dosingActive",
-        "label": "{{pumpFlowLpm}} L/min"
-      },
-      "e-proc-waste": {
-        "active": "stage3 && dosingActive",
-        "label": "{{glycerolLiters}}L Glyc"
-      },
-      "e-proc-wash": {
-        "active": "stage3 && dosingActive",
-        "label": "{{biodieselLiters}}L Crude"
-      },
-      "e-wash-filt": {
-        "active": "stage4 && dosingActive",
-        "label": "Wash Out"
-      },
-      "e-filt-stor": {
-        "active": "stage4 && dosingActive",
-        "label": "Clean B100"
-      }
+      "e-raw-dry": { "active": "stage1 && batchLiters > 0", "label": "{{batchLiters}}L WVO" },
+      "e-dry-pump": { "active": "stage2 && dosingActive", "label": "IN 1: Oil" },
+      "e-meth-pump": { "active": "stage2 && dosingActive", "label": "IN 2: MeONa" },
+      "e-pump-proc": { "active": "stage2 && dosingActive", "label": "{{pumpFlowLpm}} L/min" },
+      "e-proc-waste": { "active": "stage3 && dosingActive", "label": "{{glycerolLiters}}L Glyc" },
+      "e-proc-wash": { "active": "stage3 && dosingActive", "label": "{{biodieselLiters}}L Crude" },
+      "e-wash-filt": { "active": "stage4 && dosingActive", "label": "Wash Out" },
+      "e-filt-stor": { "active": "stage4 && dosingActive", "label": "Clean B100" }
     }
   },
   "nodes": [
@@ -182,6 +149,16 @@
       "type": "custom",
       "position": { "x": 440, "y": 30 },
       "data": { "label": "DRUM 7: Methoxide Mix", "color": "#8b5cf6", "kind": "drum", "variant": "mix" }
+    },
+    {
+      "id": "note-glycerine-sep",
+      "type": "custom",
+      "position": { "x": 830, "y": 20 },
+      "data": {
+        "kind": "note",
+        "label": "How Waste Glycerine Separates",
+        "noteText": "After transesterification in DRUM 3, the batch settles by gravity. Heavy glycerine + spent NaOH (1.26 g/cm³) sinks to the bottom cone and drains into DRUM 6, while lighter crude biodiesel (0.88 g/cm³) floats above and routes to DRUM 4."
+      }
     },
     {
       "id": "dry-heat",
@@ -232,85 +209,14 @@
     }
   ],
   "edges": [
-    {
-      "id": "e-raw-dry",
-      "source": "raw-oil",
-      "target": "dry-heat",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "animated": false,
-      "type": "smoothstep",
-      "style": { "stroke": "#f59e0b", "strokeWidth": 3 }
-    },
-    {
-      "id": "e-dry-pump",
-      "source": "dry-heat",
-      "target": "dosing-pump",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "animated": false,
-      "type": "smoothstep",
-      "style": { "stroke": "#3b82f6", "strokeWidth": 3 }
-    },
-    {
-      "id": "e-meth-pump",
-      "source": "methoxide-tank",
-      "target": "dosing-pump",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "animated": false,
-      "type": "smoothstep",
-      "style": { "stroke": "#8b5cf6", "strokeWidth": 3 }
-    },
-    {
-      "id": "e-pump-proc",
-      "source": "dosing-pump",
-      "target": "processor",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "animated": false,
-      "type": "smoothstep",
-      "style": { "stroke": "#7c3aed", "strokeWidth": 3 }
-    },
-    {
-      "id": "e-proc-waste",
-      "source": "processor",
-      "target": "waste",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "animated": false,
-      "type": "smoothstep",
-      "style": { "stroke": "#f97316", "strokeWidth": 3 }
-    },
-    {
-      "id": "e-proc-wash",
-      "source": "processor",
-      "target": "wash-dry",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "animated": false,
-      "type": "smoothstep",
-      "style": { "stroke": "#3b82f6", "strokeWidth": 3 }
-    },
-    {
-      "id": "e-wash-filt",
-      "source": "wash-dry",
-      "target": "filters",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "animated": false,
-      "type": "smoothstep",
-      "style": { "stroke": "#3b82f6", "strokeWidth": 3 }
-    },
-    {
-      "id": "e-filt-stor",
-      "source": "filters",
-      "target": "storage",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "animated": false,
-      "type": "smoothstep",
-      "style": { "stroke": "#10b981", "strokeWidth": 3 }
-    }
+    { "id": "e-raw-dry", "source": "raw-oil", "target": "dry-heat", "sourceHandle": "bottom", "targetHandle": "top", "animated": false, "type": "smoothstep", "style": { "stroke": "#f59e0b", "strokeWidth": 3 } },
+    { "id": "e-dry-pump", "source": "dry-heat", "target": "dosing-pump", "sourceHandle": "right", "targetHandle": "left", "animated": false, "type": "smoothstep", "style": { "stroke": "#3b82f6", "strokeWidth": 3 } },
+    { "id": "e-meth-pump", "source": "methoxide-tank", "target": "dosing-pump", "sourceHandle": "bottom", "targetHandle": "top", "animated": false, "type": "smoothstep", "style": { "stroke": "#8b5cf6", "strokeWidth": 3 } },
+    { "id": "e-pump-proc", "source": "dosing-pump", "target": "processor", "sourceHandle": "right", "targetHandle": "left", "animated": false, "type": "smoothstep", "style": { "stroke": "#7c3aed", "strokeWidth": 3 } },
+    { "id": "e-proc-waste", "source": "processor", "target": "waste", "sourceHandle": "right", "targetHandle": "left", "animated": false, "type": "smoothstep", "style": { "stroke": "#f97316", "strokeWidth": 3 } },
+    { "id": "e-note-waste", "source": "note-glycerine-sep", "target": "waste", "sourceHandle": "bottom", "targetHandle": "top", "animated": false, "type": "smoothstep", "style": { "stroke": "#94a3b8", "strokeWidth": 1.5, "strokeDasharray": "5,5" } },
+    { "id": "e-proc-wash", "source": "processor", "target": "wash-dry", "sourceHandle": "bottom", "targetHandle": "top", "animated": false, "type": "smoothstep", "style": { "stroke": "#3b82f6", "strokeWidth": 3 } },
+    { "id": "e-wash-filt", "source": "wash-dry", "target": "filters", "sourceHandle": "right", "targetHandle": "left", "animated": false, "type": "smoothstep", "style": { "stroke": "#3b82f6", "strokeWidth": 3 } },
+    { "id": "e-filt-stor", "source": "filters", "target": "storage", "sourceHandle": "right", "targetHandle": "left", "animated": false, "type": "smoothstep", "style": { "stroke": "#10b981", "strokeWidth": 3 } }
   ]
 }
